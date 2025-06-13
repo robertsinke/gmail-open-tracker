@@ -1,6 +1,6 @@
 console.log('🚀 Gmail Open Tracker extension starting...');
 
-const TRACKING_SERVER = 'https://localhost:3000'; // Use HTTPS for local testing
+const TRACKING_SERVER = 'https://gmail-open-tracker.onrender.com'; // Live production server
 
 function generateTrackingId() {
     const timestamp = Date.now();
