@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Open Tracker",
+  "version": "1.0",
+  "description": "Tracks email opens in Gmail by injecting a tracking pixel",
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+} 
