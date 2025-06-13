@@ -91,6 +91,14 @@ app.get('/logs', async (req, res) => {
     res.json({ events });
 });
 
+// CORS middleware for /logs endpoint
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
 // For Vercel, we export the app
 module.exports = app;
 
