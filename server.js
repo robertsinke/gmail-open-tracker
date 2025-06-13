@@ -19,14 +19,16 @@ if (!fs.existsSync(logsDir)) {
 }
 
 // Log tracking data to file
-function logTrackingData(id) {
+function logTrackingData(id, subject, to) {
     const timestamp = new Date().toISOString();
-    const logEntry = `${timestamp} - ID: ${id}\n`;
+    const logEntry = `${timestamp} - ID: ${id} - SUBJECT: ${subject} - TO: ${to}\n`;
     const logFile = path.join(logsDir, 'tracking.log');
     
     console.log('📧 New email open detected!');
     console.log(`⏰ Time: ${timestamp}`);
     console.log(`🆔 Tracking ID: ${id}`);
+    if (subject) console.log(`✉️ Subject: ${subject}`);
+    if (to) console.log(`👤 To: ${to}`);
     
     // For serverless environments, we might not be able to write files
     // So we'll log to console and optionally try to write to file
@@ -41,6 +43,8 @@ function logTrackingData(id) {
 // Serve the tracking pixel
 app.get('/pixel', (req, res) => {
     const id = req.query.id;
+    const subject = req.query.subject ? decodeURIComponent(req.query.subject) : '';
+    const to = req.query.to ? decodeURIComponent(req.query.to) : '';
     
     if (!id) {
         console.log('❌ Missing tracking ID in request');
@@ -53,7 +57,7 @@ app.get('/pixel', (req, res) => {
     console.log(`📍 IP: ${req.ip || req.connection.remoteAddress}`);
     
     // Log the tracking data
-    logTrackingData(id);
+    logTrackingData(id, subject, to);
     
     // Set headers to prevent caching
     res.set({
@@ -85,10 +89,10 @@ app.get('/logs', async (req, res) => {
         if (fs.existsSync(logFile)) {
             const lines = fs.readFileSync(logFile, 'utf-8').split('\n').filter(Boolean);
             events = lines.slice(-10).map(line => {
-                // Format: 2025-06-13T21:34:53.235Z - ID: 1749850493076-uq0oos
-                const match = line.match(/^(.*?) - ID: (.*)$/);
+                // Format: 2025-06-13T21:34:53.235Z - ID: ... - SUBJECT: ... - TO: ...
+                const match = line.match(/^(.*?) - ID: (.*?) - SUBJECT: (.*?) - TO: (.*)$/);
                 if (match) {
-                    return { timestamp: match[1], id: match[2] };
+                    return { timestamp: match[1], id: match[2], subject: match[3], to: match[4] };
                 }
                 return null;
             }).filter(Boolean);

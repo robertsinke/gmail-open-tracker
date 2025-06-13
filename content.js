@@ -8,14 +8,28 @@ function generateTrackingId() {
     return `${timestamp}-${random}`;
 }
 
+function getEmailMetadata() {
+    // Try to get subject
+    let subject = '';
+    let to = '';
+    const subjectInput = document.querySelector('input[name="subjectbox"], input[aria-label="Subject"]');
+    if (subjectInput) subject = encodeURIComponent(subjectInput.value.trim());
+    const toField = document.querySelector('textarea[name="to"], input[aria-label="To"]');
+    if (toField) to = encodeURIComponent(toField.value.trim());
+    return { subject, to };
+}
+
 function injectTrackingPixel(composeArea) {
     console.log('🎯 Attempting to inject tracking pixel...');
     const trackingId = generateTrackingId();
-    const pixelUrl = `${TRACKING_SERVER}/pixel?id=${trackingId}`;
+    const { subject, to } = getEmailMetadata();
+    let pixelUrl = `${TRACKING_SERVER}/pixel?id=${trackingId}`;
+    if (subject) pixelUrl += `&subject=${subject}`;
+    if (to) pixelUrl += `&to=${to}`;
     console.log('📡 Tracking URL:', pixelUrl);
 
     // Only inject if not already present
-    if (!composeArea.querySelector(`img[src^="${TRACKING_SERVER}/pixel"]`)) {
+    if (!composeArea.querySelector(`img[src^=\"${TRACKING_SERVER}/pixel\"]`)) {
         const pixel = document.createElement('img');
         pixel.src = pixelUrl;
         pixel.width = 1;

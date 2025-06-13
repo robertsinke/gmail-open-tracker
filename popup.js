@@ -12,7 +12,10 @@ function renderEvents(events) {
   events.forEach(ev => {
     const div = document.createElement('div');
     div.className = 'event';
-    div.innerHTML = `<span class="timestamp">${ev.timestamp}</span><br><span class="id">${ev.id}</span>`;
+    div.innerHTML = `<span class="timestamp">${ev.timestamp}</span><br>
+      <span class="id">${ev.id}</span><br>
+      ${ev.subject ? `<span class='subject'>📧 ${ev.subject}</span><br>` : ''}
+      ${ev.to ? `<span class='to'>👤 ${ev.to}</span>` : ''}`;
     eventsDiv.appendChild(div);
   });
 }
