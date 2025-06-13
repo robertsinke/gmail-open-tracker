@@ -23,6 +23,8 @@ function injectTrackingPixel(composeArea) {
     console.log('🎯 Attempting to inject tracking pixel...');
     const trackingId = generateTrackingId();
     const { subject, to } = getEmailMetadata();
+    console.log('🟦 Extracted subject:', subject);
+    console.log('🟦 Extracted to:', to);
     let pixelUrl = `${TRACKING_SERVER}/pixel?id=${trackingId}`;
     if (subject) pixelUrl += `&subject=${subject}`;
     if (to) pixelUrl += `&to=${to}`;
