@@ -1,63 +1,136 @@
-// Configuration
-const TRACKING_SERVER = 'https://yourdomain.com'; // Replace with your actual domain
+console.log('🚀 Gmail Open Tracker extension starting...');
 
-// Generate a unique tracking ID
+const TRACKING_SERVER = 'https://localhost:3000'; // Use HTTPS for local testing
+
 function generateTrackingId() {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `${timestamp}-${random}`;
 }
 
-// Create and inject the tracking pixel
-function injectTrackingPixel(composeBody) {
+function injectTrackingPixel(composeArea) {
+    console.log('🎯 Attempting to inject tracking pixel...');
     const trackingId = generateTrackingId();
     const pixelUrl = `${TRACKING_SERVER}/pixel?id=${trackingId}`;
-    
-    // Create the tracking pixel image
-    const pixel = document.createElement('img');
-    pixel.src = pixelUrl;
-    pixel.width = 1;
-    pixel.height = 1;
-    pixel.style.display = 'none';
-    
-    // Add the pixel to the email body
-    composeBody.appendChild(pixel);
+    console.log('📡 Tracking URL:', pixelUrl);
+
+    // Only inject if not already present
+    if (!composeArea.querySelector(`img[src^="${TRACKING_SERVER}/pixel"]`)) {
+        const pixel = document.createElement('img');
+        pixel.src = pixelUrl;
+        pixel.width = 1;
+        pixel.height = 1;
+        pixel.style.display = 'none';
+        composeArea.appendChild(pixel);
+        console.log('✅ Tracking pixel injected successfully');
+        return true;
+    } else {
+        console.log('⚠️ Pixel already injected');
+        return false;
+    }
 }
 
-// Watch for the send button click
-function watchForSendButton() {
-    // Gmail's compose window has a specific class
+function findComposeArea() {
+    // Try multiple selectors to find compose area
+    const selectors = [
+        'div[role="textbox"][aria-label*="Message Body"]',
+        'div[role="textbox"][aria-label*="Body"]',
+        '.Am.Al.editable',
+        'div[contenteditable="true"][role="textbox"]'
+    ];
+    
+    for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+            console.log(`📝 Found compose area with selector: ${selector}`);
+            return element;
+        }
+    }
+    
+    console.log('❌ Could not find compose area');
+    return null;
+}
+
+function setupSendTracking() {
+    console.log('🔍 Setting up send tracking...');
+    
+    // Method 1: Direct click interception on document
+    document.addEventListener('click', function(event) {
+        const target = event.target;
+        const sendButton = target.closest('[role="button"]');
+        
+        if (sendButton && (
+            sendButton.getAttribute('aria-label')?.includes('Send') ||
+            sendButton.getAttribute('data-tooltip')?.includes('Send') ||
+            sendButton.textContent?.includes('Send')
+        )) {
+            console.log('📤 Send button clicked (direct interception)');
+            const composeArea = findComposeArea();
+            if (composeArea) {
+                injectTrackingPixel(composeArea);
+            }
+        }
+    }, true);
+    
+    // Method 2: Watch for keyboard shortcuts (Ctrl+Enter, Cmd+Enter)
+    document.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+            console.log('📤 Send keyboard shortcut detected');
+            const composeArea = findComposeArea();
+            if (composeArea) {
+                injectTrackingPixel(composeArea);
+            }
+        }
+    });
+    
+    // Method 3: MutationObserver to watch for compose window changes
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            if (mutation.addedNodes.length) {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Look for the send button
-                        const sendButton = node.querySelector('[role="button"][aria-label*="Send"]');
-                        if (sendButton) {
-                            sendButton.addEventListener('click', () => {
-                                // Find the compose body
-                                const composeBody = document.querySelector('.Am.Al.editable');
-                                if (composeBody) {
-                                    // Check if we haven't already injected a pixel
-                                    if (!composeBody.querySelector('img[src*="/pixel"]')) {
-                                        injectTrackingPixel(composeBody);
-                                    }
-                                }
-                            });
-                        }
+            // Look for nodes being removed (compose window closing after send)
+            mutation.removedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE && 
+                    (node.querySelector('[role="dialog"]') || node.matches('[role="dialog"]'))) {
+                    console.log('📤 Compose dialog removed - email likely sent');
+                }
+            });
+            
+            // Look for new compose windows
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const composeDialog = node.querySelector('[role="dialog"]') || 
+                                        (node.matches && node.matches('[role="dialog"]') ? node : null);
+                    if (composeDialog) {
+                        console.log('📝 New compose dialog detected');
+                        // Add a small delay to let Gmail fully render
+                        setTimeout(() => {
+                            const composeArea = findComposeArea();
+                            if (composeArea && !composeArea.querySelector(`img[src^="${TRACKING_SERVER}/pixel"]`)) {
+                                console.log('🎯 Pre-injecting pixel in new compose window');
+                                injectTrackingPixel(composeArea);
+                            }
+                        }, 500);
                     }
-                });
-            }
+                }
+            });
         });
     });
-
-    // Start observing the document body for changes
+    
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
+    
+    console.log('✅ All tracking methods set up');
 }
 
-// Initialize when the page is loaded
-document.addEventListener('DOMContentLoaded', watchForSendButton); 
+function initialize() {
+    console.log('[initialize] Starting pixel tracker');
+    setupSendTracking();
+    console.log('[initialize] Pixel tracker initialized');
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+} else {
+    initialize();
+} 

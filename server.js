@@ -2,12 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const port = process.env.PORT || 3000;
 
-// Create logs directory if it doesn't exist
+// Create logs directory if it doesn't exist (for local development)
 const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir);
+    console.log('Created logs directory');
 }
 
 // Log tracking data to file
@@ -16,11 +16,18 @@ function logTrackingData(id) {
     const logEntry = `${timestamp} - ID: ${id}\n`;
     const logFile = path.join(logsDir, 'tracking.log');
     
-    fs.appendFile(logFile, logEntry, (err) => {
-        if (err) {
-            console.error('Error writing to log file:', err);
-        }
-    });
+    console.log('📧 New email open detected!');
+    console.log(`⏰ Time: ${timestamp}`);
+    console.log(`🆔 Tracking ID: ${id}`);
+    
+    // For serverless environments, we might not be able to write files
+    // So we'll log to console and optionally try to write to file
+    try {
+        fs.appendFileSync(logFile, logEntry);
+        console.log('✅ Successfully logged to tracking.log');
+    } catch (err) {
+        console.log('⚠️ Could not write to file (serverless environment), logged to console instead');
+    }
 }
 
 // Serve the tracking pixel
@@ -28,9 +35,15 @@ app.get('/pixel', (req, res) => {
     const id = req.query.id;
     
     if (!id) {
+        console.log('❌ Missing tracking ID in request');
         return res.status(400).send('Missing tracking ID');
     }
 
+    console.log('📥 Received pixel request');
+    console.log(`🔍 Query parameters:`, req.query);
+    console.log(`🌐 Request from: ${req.get('User-Agent')}`);
+    console.log(`📍 IP: ${req.ip || req.connection.remoteAddress}`);
+    
     // Log the tracking data
     logTrackingData(id);
     
@@ -45,9 +58,26 @@ app.get('/pixel', (req, res) => {
     // Send a 1x1 transparent GIF
     const transparentGif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
     res.send(transparentGif);
+    console.log('📤 Sent tracking pixel response');
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Tracking server running on port ${port}`);
-}); 
+// Health check endpoint
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'Gmail Open Tracker Server Running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// For Vercel, we export the app
+module.exports = app;
+
+// For local development, start the server
+if (require.main === module) {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log('🚀 Tracking server started!');
+        console.log(`🌐 Server running at http://localhost:${port}`);
+        console.log('📝 Logs will be saved to:', path.join(logsDir, 'tracking.log'));
+    });
+} 
