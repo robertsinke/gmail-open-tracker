@@ -27,10 +27,13 @@ function getEmailMetadataFromDialog(dialog) {
 
     // To (recipients)
     let to = '';
-    // Gmail uses a div with multiple email chips for recipients
-    const toChips = dialog.querySelectorAll('div[aria-label="To"] [email], div[aria-label="To"] span[email]');
+    // Gmail uses divs with class 'vN' or 'vM' for each recipient chip
+    const toChips = dialog.querySelectorAll('div[aria-label="To"] [email], div[aria-label="To"] span[email], div[aria-label="To"] .vN, div[aria-label="To"] .vM');
     if (toChips.length) {
-        to = Array.from(toChips).map(chip => chip.getAttribute('email')).join(', ');
+        to = Array.from(toChips)
+            .map(chip => chip.getAttribute('email') || chip.textContent.trim())
+            .filter(Boolean)
+            .join(', ');
     } else {
         // Fallback to textarea or input
         const toField = dialog.querySelector('textarea[name="to"], input[aria-label="To"]');
