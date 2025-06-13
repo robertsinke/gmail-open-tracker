@@ -19,10 +19,30 @@ function getEmailMetadata() {
     return { subject, to };
 }
 
-function injectTrackingPixel(composeArea) {
+function getEmailMetadataFromDialog(dialog) {
+    // Subject
+    let subject = '';
+    const subjectInput = dialog.querySelector('input[name="subjectbox"], input[aria-label="Subject"]');
+    if (subjectInput) subject = subjectInput.value.trim();
+
+    // To (recipients)
+    let to = '';
+    // Gmail uses a div with multiple email chips for recipients
+    const toChips = dialog.querySelectorAll('div[aria-label="To"] [email], div[aria-label="To"] span[email]');
+    if (toChips.length) {
+        to = Array.from(toChips).map(chip => chip.getAttribute('email')).join(', ');
+    } else {
+        // Fallback to textarea or input
+        const toField = dialog.querySelector('textarea[name="to"], input[aria-label="To"]');
+        if (toField) to = toField.value.trim();
+    }
+    return { subject: encodeURIComponent(subject), to: encodeURIComponent(to) };
+}
+
+function injectTrackingPixel(composeArea, dialog) {
     console.log('🎯 Attempting to inject tracking pixel...');
     const trackingId = generateTrackingId();
-    const { subject, to } = getEmailMetadata();
+    const { subject, to } = getEmailMetadataFromDialog(dialog);
     console.log('🟦 Extracted subject:', subject);
     console.log('🟦 Extracted to:', to);
     let pixelUrl = `${TRACKING_SERVER}/pixel?id=${trackingId}`;
@@ -69,73 +89,34 @@ function findComposeArea() {
 
 function setupSendTracking() {
     console.log('🔍 Setting up send tracking...');
-    
-    // Method 1: Direct click interception on document
-    document.addEventListener('click', function(event) {
-        const target = event.target;
-        const sendButton = target.closest('[role="button"]');
-        
+    // Listen for send button clicks
+    document.body.addEventListener('click', function(event) {
+        const sendButton = event.target.closest('[role="button"]');
         if (sendButton && (
             sendButton.getAttribute('aria-label')?.includes('Send') ||
             sendButton.getAttribute('data-tooltip')?.includes('Send') ||
             sendButton.textContent?.includes('Send')
         )) {
-            console.log('📤 Send button clicked (direct interception)');
-            const composeArea = findComposeArea();
-            if (composeArea) {
-                injectTrackingPixel(composeArea);
+            // Find the dialog and compose area
+            const dialog = sendButton.closest('div[role="dialog"]');
+            const composeArea = dialog?.querySelector('div[role="textbox"][aria-label*="Message Body"], div[role="textbox"][aria-label*="Body"]');
+            if (composeArea && dialog) {
+                injectTrackingPixel(composeArea, dialog);
             }
         }
     }, true);
-    
-    // Method 2: Watch for keyboard shortcuts (Ctrl+Enter, Cmd+Enter)
+    // Listen for keyboard shortcut (Ctrl+Enter, Cmd+Enter)
     document.addEventListener('keydown', function(event) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            console.log('📤 Send keyboard shortcut detected');
-            const composeArea = findComposeArea();
-            if (composeArea) {
-                injectTrackingPixel(composeArea);
+            // Find the active dialog and compose area
+            const dialogs = document.querySelectorAll('div[role="dialog"]');
+            const dialog = dialogs[dialogs.length - 1];
+            const composeArea = dialog?.querySelector('div[role="textbox"][aria-label*="Message Body"], div[role="textbox"][aria-label*="Body"]');
+            if (composeArea && dialog) {
+                injectTrackingPixel(composeArea, dialog);
             }
         }
     });
-    
-    // Method 3: MutationObserver to watch for compose window changes
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            // Look for nodes being removed (compose window closing after send)
-            mutation.removedNodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE && 
-                    (node.querySelector('[role="dialog"]') || node.matches('[role="dialog"]'))) {
-                    console.log('📤 Compose dialog removed - email likely sent');
-                }
-            });
-            
-            // Look for new compose windows
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    const composeDialog = node.querySelector('[role="dialog"]') || 
-                                        (node.matches && node.matches('[role="dialog"]') ? node : null);
-                    if (composeDialog) {
-                        console.log('📝 New compose dialog detected');
-                        // Add a small delay to let Gmail fully render
-                        setTimeout(() => {
-                            const composeArea = findComposeArea();
-                            if (composeArea && !composeArea.querySelector(`img[src^="${TRACKING_SERVER}/pixel"]`)) {
-                                console.log('🎯 Pre-injecting pixel in new compose window');
-                                injectTrackingPixel(composeArea);
-                            }
-                        }, 500);
-                    }
-                }
-            });
-        });
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    
     console.log('✅ All tracking methods set up');
 }
 
