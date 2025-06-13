@@ -3,6 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 
+// CORS middleware for all endpoints (must be first)
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
+
 // Create logs directory if it doesn't exist (for local development)
 const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
@@ -89,14 +97,6 @@ app.get('/logs', async (req, res) => {
         return res.status(500).json({ error: 'Failed to read logs' });
     }
     res.json({ events });
-});
-
-// CORS middleware for /logs endpoint
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    next();
 });
 
 // For Vercel, we export the app
