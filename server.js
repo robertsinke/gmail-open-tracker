@@ -69,6 +69,28 @@ app.get('/', (req, res) => {
     });
 });
 
+// /logs endpoint: returns last 10 tracking events
+app.get('/logs', async (req, res) => {
+    const logFile = path.join(logsDir, 'tracking.log');
+    let events = [];
+    try {
+        if (fs.existsSync(logFile)) {
+            const lines = fs.readFileSync(logFile, 'utf-8').split('\n').filter(Boolean);
+            events = lines.slice(-10).map(line => {
+                // Format: 2025-06-13T21:34:53.235Z - ID: 1749850493076-uq0oos
+                const match = line.match(/^(.*?) - ID: (.*)$/);
+                if (match) {
+                    return { timestamp: match[1], id: match[2] };
+                }
+                return null;
+            }).filter(Boolean);
+        }
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to read logs' });
+    }
+    res.json({ events });
+});
+
 // For Vercel, we export the app
 module.exports = app;
 
