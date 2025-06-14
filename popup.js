@@ -5,22 +5,32 @@ const refreshBtn = document.getElementById('refresh');
 
 function renderEvents(events) {
   eventsDiv.innerHTML = '';
-  if (!events.length) {
-    eventsDiv.innerHTML = '<div id="empty">No events found.</div>';
+  
+  // Group events by ID
+  const eventsById = {};
+  events.forEach(ev => {
+    if (!eventsById[ev.id]) {
+      eventsById[ev.id] = [];
+    }
+    eventsById[ev.id].push(ev);
+  });
+  
+  // Collect all subsequent opens (ignoring the first one for each ID)
+  const subsequentOpens = [];
+  for (const id in eventsById) {
+    const opens = eventsById[id];
+    // The opens are already sorted by time, so we just slice from the second element
+    if (opens.length > 1) {
+      subsequentOpens.push(...opens.slice(1));
+    }
+  }
+
+  if (!subsequentOpens.length) {
+    eventsDiv.innerHTML = '<div id="empty">No genuine opens detected yet.</div>';
     return;
   }
-  
-  const uniqueEvents = [];
-  const seenIds = new Set();
-  
-  events.forEach(ev => {
-    if (!seenIds.has(ev.id)) {
-      uniqueEvents.push(ev);
-      seenIds.add(ev.id);
-    }
-  });
 
-  uniqueEvents.forEach(ev => {
+  subsequentOpens.forEach(ev => {
     const div = document.createElement('div');
     div.className = 'event';
 
