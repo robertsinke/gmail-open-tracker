@@ -117,12 +117,23 @@ function setupSendTracking() {
     // Listen for keyboard shortcut (Ctrl+Enter, Cmd+Enter)
     document.addEventListener('keydown', function(event) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            // Find the active dialog and compose area
-            const dialogs = document.querySelectorAll('div[role="dialog"]');
-            const dialog = dialogs[dialogs.length - 1];
-            const composeArea = dialog?.querySelector('div[role="textbox"][aria-label*="Message Body"], div[role="textbox"][aria-label*="Body"]');
-            if (composeArea && dialog) {
-                injectTrackingPixel(composeArea, dialog);
+            console.log('⌨️ Send shortcut detected');
+            // Find the currently focused element
+            const activeElement = document.activeElement;
+            // Check if the focused element is a compose area
+            const isComposeArea = activeElement && activeElement.getAttribute('role') === 'textbox' && activeElement.getAttribute('aria-label')?.includes('Body');
+
+            if (isComposeArea) {
+                const composeArea = activeElement;
+                const dialog = composeArea.closest('div[role="dialog"]');
+                if (dialog) {
+                    console.log('Found active compose area and dialog');
+                    injectTrackingPixel(composeArea, dialog);
+                } else {
+                    console.log('Could not find parent dialog for active compose area');
+                }
+            } else {
+                console.log('Send shortcut used, but not in a compose area.');
             }
         }
     });
