@@ -59,14 +59,13 @@ function injectTrackingPixel(composeArea, dialog) {
     if (to) pixelUrl += `&to=${to}`;
     console.log('📡 Tracking URL:', pixelUrl);
 
-    // Only inject if not already present
-    if (!composeArea.querySelector(`img[src^=\"${TRACKING_SERVER}/pixel\"]`)) {
-        const pixel = document.createElement('img');
-        pixel.src = pixelUrl;
-        pixel.width = 1;
-        pixel.height = 1;
-        pixel.style.display = 'none';
-        composeArea.appendChild(pixel);
+    // Only inject if not already present by checking the raw HTML of the compose area.
+    if (!composeArea.innerHTML.includes(`${TRACKING_SERVER}/pixel`)) {
+        // Construct the pixel as an HTML string to avoid the sender's browser from fetching it.
+        const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display: none;" alt="">`;
+        
+        // Append the HTML string to the message body.
+        composeArea.innerHTML += pixelHtml;
         console.log('✅ Tracking pixel injected successfully');
         return true;
     } else {
