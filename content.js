@@ -27,17 +27,22 @@ function getEmailMetadataFromDialog(dialog) {
 
     // To (recipients)
     let to = '';
-    // Gmail uses divs with class 'vN' or 'vM' for each recipient chip
-    const toChips = dialog.querySelectorAll('div[aria-label="To"] [email], div[aria-label="To"] span[email], div[aria-label="To"] .vN, div[aria-label="To"] .vM');
-    if (toChips.length) {
+    // Robust: look for chips with data-hovercard-id inside the To field
+    let toChips = [];
+    // Try [aria-label="To recipients"] first, fallback to [aria-label="To"]
+    let toField = dialog.querySelector('[aria-label="To recipients"]') || dialog.querySelector('[aria-label="To"]');
+    if (toField) {
+        toChips = toField.querySelectorAll('[data-hovercard-id]');
+    }
+    if (toChips && toChips.length) {
         to = Array.from(toChips)
-            .map(chip => chip.getAttribute('email') || chip.textContent.trim())
+            .map(chip => chip.getAttribute('data-hovercard-id'))
             .filter(Boolean)
             .join(', ');
     } else {
         // Fallback to textarea or input
-        const toField = dialog.querySelector('textarea[name="to"], input[aria-label="To"]');
-        if (toField) to = toField.value.trim();
+        const toFieldInput = dialog.querySelector('textarea[name="to"], input[aria-label="To"]');
+        if (toFieldInput) to = toFieldInput.value.trim();
     }
     return { subject: encodeURIComponent(subject), to: encodeURIComponent(to) };
 }
