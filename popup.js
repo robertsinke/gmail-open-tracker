@@ -15,24 +15,32 @@ function renderEvents(events) {
     eventsById[ev.id].push(ev);
   });
   
-  // Collect all subsequent opens (ignoring the first one for each ID)
-  const subsequentOpens = [];
+  // Create a list of emails that have been opened more than once.
+  const genuineOpens = [];
   for (const id in eventsById) {
     const opens = eventsById[id];
-    // The opens are already sorted by time, so we just slice from the second element
     if (opens.length > 1) {
-      subsequentOpens.push(...opens.slice(1));
+      genuineOpens.push({
+        lastOpen: opens[opens.length - 1], // The most recent open event
+        count: opens.length - 1 // The number of subsequent opens
+      });
     }
   }
 
-  if (!subsequentOpens.length) {
+  if (!genuineOpens.length) {
     eventsDiv.innerHTML = '<div id="empty">No genuine opens detected yet.</div>';
     return;
   }
 
-  subsequentOpens.forEach(ev => {
+  // Sort by the most recent open
+  genuineOpens.sort((a, b) => new Date(b.lastOpen.timestamp) - new Date(a.lastOpen.timestamp));
+
+  genuineOpens.forEach(item => {
     const div = document.createElement('div');
     div.className = 'event';
+    const ev = item.lastOpen;
+    const openCount = item.count;
+    const openText = openCount === 1 ? '1 time' : `${openCount} times`;
 
     const date = new Date(ev.timestamp);
     const options = { 
@@ -40,13 +48,16 @@ function renderEvents(events) {
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
-        day: 'numeric' 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     };
     const formattedDate = date.toLocaleString('en-GB', options);
 
     div.innerHTML = `<span class="timestamp">${formattedDate}</span><br>
       ${ev.subject ? `<span class='subject'>📧 ${ev.subject}</span><br>` : ''}
-      ${ev.to ? `<span class='to'>👤 ${ev.to}</span>` : ''}`;
+      ${ev.to ? `<span class='to'>👤 ${ev.to}</span><br>` : ''}
+      <span class="count">👁️ Opened ${openText}</span>`;
     eventsDiv.appendChild(div);
   });
 }
