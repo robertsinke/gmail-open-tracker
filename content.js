@@ -27,21 +27,22 @@ function getEmailMetadataFromDialog(dialog) {
 
     // To (recipients)
     let to = '';
-    // Robust: look for chips with data-hovercard-id inside the To field
+    // Based on user's DevTools screenshot, the container for the 'To' field has a 'name' attribute.
+    const toContainer = dialog.querySelector('div[name="to"]');
     let toChips = [];
-    // Try [aria-label="To recipients"] first, fallback to [aria-label="To"]
-    let toField = dialog.querySelector('[aria-label="To recipients"]') || dialog.querySelector('[aria-label="To"]');
-    if (toField) {
-        toChips = toField.querySelectorAll('[data-hovercard-id]');
+    if (toContainer) {
+        // Find all chips within that container. They have a data-hovercard-id attribute.
+        toChips = toContainer.querySelectorAll('[data-hovercard-id]');
     }
-    if (toChips && toChips.length) {
+
+    if (toChips.length > 0) {
         to = Array.from(toChips)
             .map(chip => chip.getAttribute('data-hovercard-id'))
             .filter(Boolean)
             .join(', ');
     } else {
-        // Fallback to textarea or input
-        const toFieldInput = dialog.querySelector('textarea[name="to"], input[aria-label="To"]');
+        // Fallback to the input field if no chips are found (e.g., user is still typing)
+        const toFieldInput = dialog.querySelector('textarea[name="to"], input[aria-label*="To"]');
         if (toFieldInput) to = toFieldInput.value.trim();
     }
     return { subject: encodeURIComponent(subject), to: encodeURIComponent(to) };

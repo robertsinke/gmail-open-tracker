@@ -9,7 +9,18 @@ function renderEvents(events) {
     eventsDiv.innerHTML = '<div id="empty">No events found.</div>';
     return;
   }
+  
+  const uniqueEvents = [];
+  const seenIds = new Set();
+  
   events.forEach(ev => {
+    if (!seenIds.has(ev.id)) {
+      uniqueEvents.push(ev);
+      seenIds.add(ev.id);
+    }
+  });
+
+  uniqueEvents.forEach(ev => {
     const div = document.createElement('div');
     div.className = 'event';
     div.innerHTML = `<span class="timestamp">${ev.timestamp}</span><br>
