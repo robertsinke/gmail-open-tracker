@@ -61,8 +61,8 @@ function injectTrackingPixel(composeArea, dialog) {
 
     // Only inject if not already present by checking the raw HTML of the compose area.
     if (!composeArea.innerHTML.includes(`${TRACKING_SERVER}/pixel`)) {
-        // Construct the pixel as an HTML string to avoid the sender's browser from fetching it.
-        const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display: none;" alt="">`;
+        // Construct the pixel as an HTML string with loading="lazy" to prevent the sender's browser from fetching it.
+        const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display: none;" loading="lazy" alt="">`;
         
         // Append the HTML string to the message body.
         composeArea.innerHTML += pixelHtml;
