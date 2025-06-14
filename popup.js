@@ -23,8 +23,18 @@ function renderEvents(events) {
   uniqueEvents.forEach(ev => {
     const div = document.createElement('div');
     div.className = 'event';
-    div.innerHTML = `<span class="timestamp">${ev.timestamp}</span><br>
-      <span class="id">${ev.id}</span><br>
+
+    const date = new Date(ev.timestamp);
+    const options = { 
+        timeZone: 'Europe/Amsterdam', 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    const formattedDate = date.toLocaleString('en-GB', options);
+
+    div.innerHTML = `<span class="timestamp">${formattedDate}</span><br>
       ${ev.subject ? `<span class='subject'>📧 ${ev.subject}</span><br>` : ''}
       ${ev.to ? `<span class='to'>👤 ${ev.to}</span>` : ''}`;
     eventsDiv.appendChild(div);
